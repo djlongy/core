@@ -114,6 +114,8 @@
         openvpn_server_vpnid: 1
       tags: openvpn
 
+    - meta: end play
+
     - name: Create OpenVPN Server 2
       import_tasks: tasks/test_openvpn_server_create.yml
       vars:
