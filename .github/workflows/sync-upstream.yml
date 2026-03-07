@@ -16,7 +16,6 @@ jobs:
       - name: Checkout fork
         uses: actions/checkout@v4
         with:
-          ref: custom
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -29,32 +28,45 @@ jobs:
         run: |
           git remote add upstream https://github.com/pfsensible/core.git
           git fetch upstream master
-
-      - name: Fetch custom feature branches
-        run: |
           git fetch origin \
             fix/dns-resolver-alias-misassignment \
             feature/vip-module
 
+      - name: Rebase feature branches onto upstream/master
+        run: |
+          BRANCHES=(
+            "fix/dns-resolver-alias-misassignment"
+            "feature/vip-module"
+          )
+
+          for branch in "${BRANCHES[@]}"; do
+            echo "::group::Rebasing $branch"
+            git checkout -B "$branch" "origin/$branch"
+
+            if git merge-base --is-ancestor upstream/master "$branch"; then
+              echo "$branch is already up to date with upstream/master"
+            elif ! git rebase upstream/master; then
+              git rebase --abort
+              echo "::error::Rebase conflict on $branch - manual rebase needed"
+              exit 1
+            fi
+
+            git push origin "$branch" --force-with-lease
+            echo "::endgroup::"
+          done
+
       - name: Rebuild custom branch
         run: |
-          # Rebuild custom on top of the latest upstream master.
-          # This avoids requiring fork/master to be a strict fast-forward mirror.
           git checkout -B custom upstream/master
 
           BRANCHES=(
-            "origin/fix/dns-resolver-alias-misassignment"
-            "origin/feature/vip-module"
+            "fix/dns-resolver-alias-misassignment"
+            "feature/vip-module"
           )
 
           for branch in "${BRANCHES[@]}"; do
             echo "Merging $branch..."
-            if ! git rev-parse --verify "$branch" >/dev/null 2>&1; then
-              echo "::error::Missing branch ref: $branch"
-              exit 1
-            fi
-
-            if ! git merge --no-ff "$branch" -m "Merge ${branch#origin/} into custom"; then
+            if ! git merge --no-ff "$branch" -m "Merge $branch into custom"; then
               echo "::error::Merge conflict merging $branch - manual rebase needed"
               exit 1
             fi
