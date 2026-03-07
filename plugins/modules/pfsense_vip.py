@@ -15,7 +15,7 @@ DOCUMENTATION = """
 ---
 module: pfsense_vip
 version_added: 0.7.0
-author: Long Nguyen
+author: Long Nguyen (@djlongy)
 short_description: Manage pfSense virtual IPs
 description:
   - Manage pfSense virtual IPs (ipalias, carp, proxyarp, other)
