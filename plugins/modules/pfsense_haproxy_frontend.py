@@ -15,7 +15,7 @@ DOCUMENTATION = """
 ---
 module: pfsense_haproxy_frontend
 version_added: 0.7.0
-author: Long Nguyen
+author: Long Nguyen (@djlongy)
 short_description: Manage pfSense HAProxy frontends
 description:
   - Manage pfSense HAProxy frontend (listen) entries.
