@@ -1,0 +1,68 @@
+name: Sync upstream and rebuild custom branch
+
+on:
+  schedule:
+    # Run nightly at 04:00 UTC
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add and fetch upstream
+        run: |
+          git remote add upstream https://github.com/pfsensible/core.git
+          git fetch upstream master
+
+      - name: Sync master from upstream
+        run: |
+          git checkout master
+          git merge --ff-only upstream/master
+          git push origin master
+
+      - name: Fetch custom feature branches
+        run: |
+          git fetch origin \
+            fix/dns-resolver-alias-misassignment \
+            feature/vip-module
+
+      - name: Rebuild custom branch
+        run: |
+          # Start fresh from updated master
+          git checkout -B custom master
+
+          BRANCHES=(
+            "origin/fix/dns-resolver-alias-misassignment"
+            "origin/feature/vip-module"
+          )
+
+          for branch in "${BRANCHES[@]}"; do
+            echo "Merging $branch..."
+            if ! git rev-parse --verify "$branch" >/dev/null 2>&1; then
+              echo "::error::Missing branch ref: $branch"
+              exit 1
+            fi
+
+            if ! git merge --no-ff "$branch" -m "Merge ${branch#origin/} into custom"; then
+              echo "::error::Merge conflict merging $branch - manual rebase needed"
+              exit 1
+            fi
+          done
+
+          git push origin custom --force-with-lease
