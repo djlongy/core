@@ -123,7 +123,7 @@ class PFSenseModuleBase(object):
         self.package = package
 
         # routing for argument handling
-        self.arg_route = BASE_ARG_ROUTE
+        self.arg_route = BASE_ARG_ROUTE.copy()
         if arg_route is not None:
             self.arg_route.update(arg_route)
 
@@ -446,6 +446,10 @@ class PFSenseModuleBase(object):
         else:
             return ('', '', '')
 
+    def _run_post(self):
+        """ used to do some post-processing like adding results or decoding diff entries """
+        pass
+
     # We take params here for use with pfsense_aggregate and the test framework
     def run(self, params):
         """ process input params to add/update/delete """
@@ -463,6 +467,8 @@ class PFSenseModuleBase(object):
             self._remove()
         else:
             self._add()
+
+        self._run_post()
 
     ##############################
     # Logging
